@@ -34,36 +34,19 @@ async def loginner(update, context):
     return 1
 
 
-async def signupper(update, context):
-    await update.message.reply_text("Пожалуйста, отправьте ваши данные в таком порядке(через пробел):"
-                                    "Логин, Яндекс_ID, Имя, Фамилия")
-    return 1
-
-
 async def login(update, context):
     global body
-    user_id = update.message.from_user.id
+    user_id = update.message.text
     update.message.reply_text(f'Пожалуйста, отправьте ваш Яндекс_ID:', reply_markup=ReplyKeyboardRemove())
-    res = cur.execute(f"SELECT first_name, last_name FROM accounts"
+    res = cur.execute(f"SELECT first_name, last_name FROM accounts "
                       f"WHERE yandex_id={user_id}").fetchall()
     if len(res) == 0:
         await update.message.reply_text(f'Простите, но аккаунта с таким id не существует.')
     else:
-        await update.message.reply_text(f'С возвращением, {res[0], res[1]}')
-        update.message.delete(update.message.text)
+        print(res)
+        await update.message.reply_text(f'С возвращением, {res[0][0]}, {res[0][1]}')
+        await update.message.delete()
         body = 1
-
-
-async def signup(update, context):
-    login, yandex_id, f_name, l_name = update.message.text.split()
-    res = cur.execute(f'SELECT yandex_id FROM accounts WHERE yandex_id = {yandex_id}').fetchall()
-    if len(res) != 0:
-        await update.message.reply_text(f'Простите, но аккаунт с таким id уже существует.')
-    else:
-        await update.message.reply_text(f'Добро пожаловать в наш школьный мир!')
-        cur.execute(f'INSERT INTO accounts("login, yandex_id, acctype, first_name, last_name") '
-                    f'VALUES({login}, {yandex_id}, 0, {f_name}, {l_name})')
-        con.commit()
 
 
 async def exitor(update, context):
@@ -74,6 +57,7 @@ async def exitor(update, context):
 
 
 async def send(update, context):
+    print(update.message.from_user.id)
     if body == 1:
         await update.message.reply_text(
             "Введите имя и фамилию отправителя, первая буква имени и первая буква фамилии ЗАГЛАВНАЯ,"
@@ -88,8 +72,8 @@ async def send(update, context):
 async def idir(update, context):
     global idk
     first_name, last_name = update.message.text.split()
-    res = cur.execute(f"SELECT yandex_id FROM accounts WHERE first_name = {first_name} AND"
-                      f" last_name = {last_name}").fetchall()
+    res = cur.execute(f'SELECT yandex_id FROM accounts '
+                      f'WHERE first_name="{first_name}" AND last_name="{last_name}"').fetchall()
     if len(res) == 0:
         await update.message.reply_text('Вы отправили не тот id')
         return 1
@@ -114,17 +98,9 @@ def main():
         },
         fallbacks=[CommandHandler('exit', exitor)]
     )
-    sig = ConversationHandler(
-        entry_points=[CommandHandler('signup', signupper)],
-        states={
-            1: [MessageHandler(filters.TEXT & ~filters.COMMAND, signup)]
-        },
-        fallbacks=[CommandHandler('exit', exitor)]
-    )
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            1: [CommandHandler('signup', signupper)],
             2: [CommandHandler('login', loginner)]
         },
         fallbacks=[CommandHandler('exit', exitor)]
@@ -138,12 +114,10 @@ def main():
         fallbacks=[CommandHandler('exit', is_sent)]
     )
     application.add_handler(log)
-    application.add_handler(sig)
     application.add_handler(conv_handler)
     application.add_handler(sender)
-    application.add_handler(CommandHandler('login', loginner))
-    application.add_handler(CommandHandler('signup', signupper))
-
+    application.add_handler(CommandHandler('link', loginner))
+    application.add_handler(CommandHandler('exit', exitor))
     application.run_polling()
 
 
