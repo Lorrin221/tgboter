@@ -22,7 +22,6 @@ keyb = [['/friends'],
 mrkup = ReplyKeyboardMarkup(keyb, one_time_keyboard=False)
 
 
-
 def password_level(word):  # Для проверки пароля
     if len(word) < 6:
         return 'Недопустимый пароль'
@@ -126,7 +125,7 @@ async def sig_3(update, context):
 
 async def loginner(update, context):  # Вход в аккаунт, стартовая точка
     global body
-    if not(body):
+    if not (body):
         res = cur.execute(f'SELECT * FROM accounts WHERE id = {update.message.from_user.id}').fetchall()
         if len(res) == 0:
             await update.message.reply_text("Вы еще не зарегистрированы! Пожалуйста, зарегистрируйтесь!")
@@ -172,7 +171,8 @@ async def friender(update, context):  # Отправим контакту зап
 async def friend_1(update, context):
     global body
     text = list(update.message.text.split())
-    res = cur.execute('SELECT chat_id FROM accounts WHERE first_name=? and last_name=?', (text[0], text[1])).fetchall()#Проверим существование аккаунта
+    res = cur.execute('SELECT chat_id FROM accounts WHERE first_name=? and last_name=?',
+                      (text[0], text[1])).fetchall()  # Проверим существование аккаунта
     if len(res) == 0:
         await update.message.reply_text('Такого пользователя нет! Попробуйте еще раз!')
         return 1
@@ -184,20 +184,22 @@ async def friend_1(update, context):
             'text': f"Вам отправлен запрос на дружбу от {body[0]} {body[1]}"
         }
         cur.execute(f'INSERT INTO {body[0]}_{body[1]}(id, first_name, last_name) VALUES(?,?,?);',
-                    *otp)# В таблицу отправителя добавляется получатель
+                    *otp)  # В таблицу отправителя добавляется получатель
         cur.execute(f'INSERT INTO {otp[0][1]}_{otp[0][2]}(id, first_name, last_name) VALUES(?,?,?);',
-                    (update.message.from_user.id, *body)) # В таблицу получателя добавляется отправитель
+                    (update.message.from_user.id, *body))  # В таблицу получателя добавляется отправитель
         con.commit()
-        response = requests.get(f'https://api.telegram.org/bot{TOKEN}/sendMessage', params=params) #Отправим сообщение получателю
+        response = requests.get(f'https://api.telegram.org/bot{TOKEN}/sendMessage',
+                                params=params)  # Отправим сообщение получателю
         await update.message.reply_text('Запрос отправлен!')
         return ConversationHandler.END
 
 
 async def send(update, context):  # Отправим сообщение своему контакту
     global body
-    if not(not(body)):
-        res = cur.execute(f'SELECT first_name, last_name FROM {body[0]}_{body[1]}').fetchall() #Получаем список контактов
-        if len(res) > 0: #Есть ли вообще контакты
+    if not (not (body)):
+        res = cur.execute(
+            f'SELECT first_name, last_name FROM {body[0]}_{body[1]}').fetchall()  # Получаем список контактов
+        if len(res) > 0:  # Есть ли вообще контакты
             buttons = [[' '.join(x)] for x in res]
             buttons.append(['/cancel'])
             buttons.append(['/exit'])
@@ -205,7 +207,7 @@ async def send(update, context):  # Отправим сообщение свое
             await update.message.reply_text(
                 "Выберите пользователя, которому хотите отправить сообщение:", reply_markup=contacts)
             return 1
-        else: #Если нет, завершаем диалог
+        else:  # Если нет, завершаем диалог
             await update.message.reply_text('У вас нет друзей!')
             return ConversationHandler.END
     else:
@@ -214,22 +216,24 @@ async def send(update, context):  # Отправим сообщение свое
         return ConversationHandler.END
 
 
-async def idir(update, context): #Проверка корректности аккаунта и ввод сообщения
-    global idk # Сюда запишем id чата бота и получателя
+async def idir(update, context):  # Проверка корректности аккаунта и ввод сообщения
+    global idk  # Сюда запишем id чата бота и получателя
     first_name, last_name = update.message.text.split()
     res = cur.execute(f'SELECT chat_id FROM accounts '
-                      f'WHERE first_name=? AND last_name=?', (first_name, last_name)).fetchall()#Нужно будет для сообщения
-    if len(res) == 0: # Нет такого пользователя
+                      f'WHERE first_name=? AND last_name=?',
+                      (first_name, last_name)).fetchall()  # Нужно будет для сообщения
+    if len(res) == 0:  # Нет такого пользователя
         await update.message.reply_text('Такого пользователя нет! Попробуйте еще раз')
         return 1
     else:
         idk = res[0][0]
         await update.message.reply_text('Введите ваше сообщение:',
-                                        reply_markup=ReplyKeyboardMarkup([['/cancel'], ['/exit']], one_time_keyboard=False))
+                                        reply_markup=ReplyKeyboardMarkup([['/cancel'], ['/exit']],
+                                                                         one_time_keyboard=False))
         return 2
 
 
-async def is_sent(update, context): # Отправляем сообщение
+async def is_sent(update, context):  # Отправляем сообщение
     global idk
     text = f'Вам сообщение от {body[0]} {body[1]}:\n{update.message.text}'
     params = {
@@ -239,10 +243,11 @@ async def is_sent(update, context): # Отправляем сообщение
     response = requests.get(f'https://api.telegram.org/bot{TOKEN}/sendMessage', params=params)
     await update.message.reply_text("Все отправлено!", reply_markup=mrkup)
 
+
 # Следующие 3 команды работают аналогично 3 предыдущим, но для анонимного чата
 async def anonym_send(update, context):  # Отправим сообщение своему контакту
     global body
-    if not(not(body)):
+    if not (not (body)):
         res = cur.execute(f'SELECT first_name, last_name FROM {body[0]}_{body[1]}').fetchall()
         if len(res) > 0:
             buttons = [[' '.join(x)] for x in res]
